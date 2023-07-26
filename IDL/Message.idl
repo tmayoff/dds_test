@@ -1,0 +1,8 @@
+module Testing{
+	@topic 
+    struct Message {
+        long id;
+        string msg;
+        sequence<octet> data;
+    };
+};
