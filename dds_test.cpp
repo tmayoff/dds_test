@@ -64,13 +64,26 @@ int main() {
   if (!topic)
     throw std::runtime_error("Failed to create topic");
 
-  auto sub_ = create_subsciber(participant, topic);
+  auto sub1 = create_subsciber(participant, topic);
 
-  std::promise<bool> gotData;
-  sub_.listener->SetDataCallback([&gotData](const Testing::Message &) {
+  std::promise<bool> data1;
+  sub1.listener->SetDataCallback([&data1](const Testing::Message &) {
     std::cout << "Callback 1" << std::endl;
-    gotData.set_value(true);
+    data1.set_value(true);
   });
+
+  {
+    auto pub = create_publisher(participant, topic);
+    wait_for_subscriber(pub.writer);
+
+    // Send Message
+    Testing::Message msg;
+    msg.id(0);
+    msg.msg("Hello World");
+    pub.message_writer->write(msg, DDS::HANDLE_NIL);
+  }
+
+  data1.get_future().get();
 
   std::promise<bool> data2;
   auto sub2 = create_subsciber(participant, topic);
@@ -79,18 +92,6 @@ int main() {
     data2.set_value(true);
   });
 
-  {
-    auto pub_ = create_publisher(participant, topic);
-    wait_for_subscriber(pub_.writer);
-
-    // Send Message
-    Testing::Message msg;
-    msg.id(0);
-    msg.msg("Hello World");
-    pub_.message_writer->write(msg, DDS::HANDLE_NIL);
-  }
-
-  gotData.get_future().get();
   data2.get_future().get();
 
   // Create second subscriber
